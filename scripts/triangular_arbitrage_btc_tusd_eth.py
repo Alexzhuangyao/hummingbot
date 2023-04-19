@@ -37,13 +37,13 @@ class TriangularArbitrage(ScriptStrategyBase):
     - !!! Profitability calculation doesn't take into account trading fees, set min_profitability to at least 3 * fee
     """
     # Config params
-    connector_name: str = "kucoin"
-    first_pair: str = "ADA-USDT"
-    second_pair: str = "ADA-BTC"
-    third_pair: str = "BTC-USDT"
-    holding_asset: str = "USDT"
+    connector_name: str = "binance"
+    first_pair: str = "BTC-TUSD"
+    second_pair: str = "ETH-TUSD"
+    third_pair: str = "ETH-BTC"
+    holding_asset: str = "BTC"
 
-    min_profitability: Decimal = Decimal("0.5")
+    min_profitability: Decimal = Decimal("0.1")
     order_amount_in_holding_asset: Decimal = Decimal("20")
 
     kill_switch_enabled: bool = True
@@ -279,7 +279,7 @@ class TriangularArbitrage(ScriptStrategyBase):
         return OrderCandidate(
             trading_pair=pair,
             is_maker=False,
-            order_type=OrderType.MARKET,
+            order_type=OrderType.LIMIT,
             order_side=side,
             amount=amount_quantize,
             price=price_quantize)
