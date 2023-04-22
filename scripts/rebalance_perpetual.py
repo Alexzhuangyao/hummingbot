@@ -11,11 +11,11 @@ from hummingbot.core.utils.async_utils import safe_ensure_future
 class RebalancePerptual(ScriptStrategyBase):
     # 设定变量
     config: Dict = {
-        "connector_name": "binance_perpetual_testnet",
+        "connector_name": "binance_perpetual",
         "trading_pair": {"BNB-USDT", "BTC-USDT", "ETH-USDT"},
-        "threshold": Decimal("0.01"),
-        "targe_value": Decimal("10"),
-        "buy_interval": 60
+        "threshold": Decimal("0.1"),
+        "targe_value": Decimal("100"),
+        "buy_interval": 10
     }
     last_ordered_ts = 0.
     markets = {config["connector_name"]: config["trading_pair"]}
@@ -47,12 +47,15 @@ class RebalancePerptual(ScriptStrategyBase):
     # 获取当前持仓状况
     def get_balance(self):
         positions = self.connectors[self.config["connector_name"]].account_positions
+        for connector_name, connector in self.connectors.items():
+            print(connector_name)
+            print(connector)
         print("positions")
         print(positions)
         if positions:
             for tp in self.config["trading_pair"]:
-                amount = Decimal(positions[tp.replace("-", "")].amount)  # 不同交易所这里的字符串可能不同
-                # amount = Decimal(positions[tp.replace("-USDT", "")].amount)  # 不同交易所这里的字符串可能不同
+                # amount = Decimal(positions[tp.replace("-", "")].amount)  # 不同交易所这里的字符串可能不同
+                amount = Decimal(positions[tp].amount)  # 不同交易所这里的字符串可能不同
                 price = Decimal(self.connectors[self.config["connector_name"]].get_mid_price(tp))
                 self.price[tp] = price
                 self.asset_value[tp] = amount * price
