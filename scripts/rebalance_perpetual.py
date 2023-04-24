@@ -14,7 +14,7 @@ class RebalancePerptual(ScriptStrategyBase):
         "connector_name": "binance_perpetual",
         "trading_pair": {"BNB-USDT", "BTC-USDT", "ETH-USDT"},
         "threshold": Decimal("0.1"),
-        "targe_value": Decimal("100"),
+        "targe_value": Decimal("300"),
         "buy_interval": 10
     }
     last_ordered_ts = 0.

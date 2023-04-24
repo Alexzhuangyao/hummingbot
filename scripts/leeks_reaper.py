@@ -15,13 +15,13 @@ import logging
 
 
 class LeeksReaper(ScriptStrategyBase):
-    connector_name = "binance"
-    trading_pair = "BTC-TUSD"
-    burst_threshold = 0.0003
-    burst_vol = 1
+    connector_name = "binance_paper_trade"
+    trading_pair = "BTC-USDT"
+    burst_threshold = 0.001
+    burst_vol = 5
     min_stock = 0.00001
     buy_interval = 3
-    rebalance_interval = 60
+    rebalance_interval = 10
 
     vol = 0
     prices = []
@@ -165,8 +165,8 @@ class LeeksReaper(ScriptStrategyBase):
             self.trade_amount = float(df.loc[df['Asset'] == self.quote, 'Available Balance']) / Bids * 0.99
             self.filled_delay = self.rebalance_interval
 
-        elif (self.num_tick > 2) & (self.prices[-1] - min(self.prices[-6:-1]) < -burstPrice) | (
-                (self.prices[-1] - min(self.prices[-6:-2]) < -burstPrice) & (self.prices[-1] < self.prices[-2])):
+        elif (self.num_tick > 2) & (self.prices[-1] - min(self.prices[-6:-1]) < - burstPrice) | (
+                (self.prices[-1] - min(self.prices[-6:-2]) < - burstPrice) & (self.prices[-1] < self.prices[-2])):
             print('Short-term BEAR burst！')
             self.status = 1
             self.bear = True
