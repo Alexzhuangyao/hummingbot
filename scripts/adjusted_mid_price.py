@@ -25,8 +25,9 @@ class AdjustedMidPrice(ScriptStrategyBase):
     strategy = {
         "test_volume": 50,  # the amount in base currancy to make the hypothetical market buy and market sell.
         "bid_spread": .1,   # how far away from the mid price do you want to place the first bid order (1 indicated 1%)
+        "status"
         "ask_spread": .1,   # how far away from the mid price do you want to place the first bid order (1 indicated 1%)
-        "amount": .1,       # the amount in base currancy you want to buy or sell
+        "amount": .001,       # the amount in base currancy you want to buy or sell.
         "order_refresh_time": 60,
         "market": "binance_paper_trade",
         "pair": "BTC-USDT"

@@ -1,3 +1,5 @@
+import decimal
+
 from hummingbot.strategy.script_strategy_base import Decimal, OrderType, ScriptStrategyBase
 from typing import Dict
 
@@ -12,10 +14,12 @@ class RebalancePerptual(ScriptStrategyBase):
     # 设定变量
     config: Dict = {
         "connector_name": "binance_perpetual",
-        "trading_pair": {"BNB-USDT", "BTC-USDT", "ETH-USDT"},
+        "trading_pair": {"BTC-BUSD", "ETH-BUSD",
+                         "ADA-BUSD", "DOGE-BUSD",
+                         "XRP-BUSD", "LTC-BUSD", "1000LUNC-BUSD"},
         "threshold": Decimal("0.1"),
-        "targe_value": Decimal("300"),
-        "buy_interval": 10
+        "targe_value": Decimal("1000"),
+        "buy_interval": 180
     }
     last_ordered_ts = 0.
     markets = {config["connector_name"]: config["trading_pair"]}
@@ -68,6 +72,7 @@ class RebalancePerptual(ScriptStrategyBase):
         # 如果资产的价值小于目标价值+阈值，挂单买入
         # 如果两者都不是，则同时挂较远的买卖订单
         config = self.config.copy()
+        amount = decimal.Decimal('0.1')
         for tp in self.asset_value:
             if self.asset_value[tp] >= config["targe_value"] * (1 + config["threshold"]):
                 self.sell(self.config["connector_name"], tp,
@@ -79,8 +84,8 @@ class RebalancePerptual(ScriptStrategyBase):
                          self.price[tp] * Decimal("0.999"), common.PositionAction.OPEN)
             else:
                 self.sell(self.config["connector_name"], tp,
-                          Decimal(config["targe_value"] * config["threshold"]) / self.price[tp], OrderType.LIMIT,
+                          Decimal(config["targe_value"] * config["threshold"] * amount) / self.price[tp], OrderType.LIMIT,
                           self.price[tp] * Decimal("1.005"), common.PositionAction.CLOSE)
                 self.buy(self.config["connector_name"], tp,
-                         Decimal(config["targe_value"] * config["threshold"]) / self.price[tp], OrderType.LIMIT,
+                         Decimal(config["targe_value"] * config["threshold"] * amount) / self.price[tp], OrderType.LIMIT,
                          self.price[tp] * Decimal("0.995"), common.PositionAction.OPEN)

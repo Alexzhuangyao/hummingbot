@@ -39,12 +39,12 @@ class TriangularArbitrage(ScriptStrategyBase):
     # Config params
     connector_name: str = "binance"
     first_pair: str = "BTC-TUSD"
-    second_pair: str = "ETH-TUSD"
-    third_pair: str = "ETH-BTC"
-    holding_asset: str = "BTC"
+    second_pair: str = "ETH-BTC"
+    third_pair: str = "ETH-TUSD"
+    holding_asset: str = "TUSD"
 
-    min_profitability: Decimal = Decimal("0.1")
-    order_amount_in_holding_asset: Decimal = Decimal("20")
+    min_profitability: Decimal = Decimal("0.05")
+    order_amount_in_holding_asset: Decimal = Decimal("200")
 
     kill_switch_enabled: bool = True
     kill_switch_rate = Decimal("-2")

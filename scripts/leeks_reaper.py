@@ -15,9 +15,9 @@ import logging
 
 
 class LeeksReaper(ScriptStrategyBase):
-    connector_name = "binance_paper_trade"
+    connector_name = "binance_perpetual_testnet"
     trading_pair = "BTC-USDT"
-    burst_threshold = 0.001
+    burst_threshold = 0.0005
     burst_vol = 5
     min_stock = 0.00001
     buy_interval = 3
@@ -134,10 +134,10 @@ class LeeksReaper(ScriptStrategyBase):
 
         if self.base_value >= total_value * 0.52:
             self.sell(self.connector_name, self.trading_pair, Decimal(total_value / self.price * self.threshold),
-                      OrderType.LIMIT, Decimal(self.price * 1.0001))
+                      OrderType.MARKET, Decimal(self.price * 1.0001))
         elif self.base_value < total_value * 0.48:
             self.buy(self.connector_name, self.trading_pair, Decimal(total_value / self.price * self.threshold),
-                     OrderType.LIMIT, Decimal(self.price * 0.9999))
+                     OrderType.MARKET, Decimal(self.price * 0.9999))
 
     def reaper(self):
         print('STEP 1 Start | Updating trading volume')
@@ -208,10 +208,10 @@ class LeeksReaper(ScriptStrategyBase):
         if self.trade_amount >= self.min_stock:
             if self.bull:
                 best_bid = self.connectors[self.connector_name].get_price(self.trading_pair, False)
-                self.buy(self.connector_name, self.trading_pair, Decimal(self.trade_amount), OrderType.LIMIT, best_bid)
+                self.buy(self.connector_name, self.trading_pair, Decimal(self.trade_amount), OrderType.MARKET, best_bid)
             elif self.bear:
                 best_ask = self.connectors[self.connector_name].get_price(self.trading_pair, True)
-                self.sell(self.connector_name, self.trading_pair, Decimal(self.trade_amount), OrderType.LIMIT, best_ask)
+                self.sell(self.connector_name, self.trading_pair, Decimal(self.trade_amount), OrderType.MARKET, best_ask)
 
             self.trade_amount *= 0.98
 
