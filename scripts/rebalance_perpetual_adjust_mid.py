@@ -1,4 +1,3 @@
-from hummingbot.connector.connector_base import ConnectorBase
 from hummingbot.strategy.script_strategy_base import Decimal, OrderType, ScriptStrategyBase
 from typing import Dict
 
@@ -10,35 +9,37 @@ from hummingbot.core.utils.async_utils import safe_ensure_future
 
 
 class RebalancePerptual(ScriptStrategyBase):
-    """
-    自动平衡+盘口挂单
-    """
-    def __init__(self, connectors: Dict[str, ConnectorBase]):
-        # 设定变量
-        super().__init__(connectors)
-        self.current_timestamp = None
-        self.config: Dict = {
-            "connector_name": "binance_perpetual_testnet",
-            "trading_pair": {"BNB-BUSD", "ADA-BUSD", "DOGE-BUSD",
-                             "AVAX-BUSD", "APT-BUSD"},
-            "threshold": Decimal("0.01"),
-            "targe_value": Decimal("2000"),
-            "buy_interval": 60,
-            "test_volume": 50
-        }
-        self.last_ordered_ts = 0.
-        self.markets = {self.config["connector_name"]: self.config["trading_pair"]}
-        self.connector = self.connectors[self.config["connector_name"]]
-        self.price = {}
-        self.asset_value = {}
+    # 设定变量
+    config: Dict = {
+        "connector_name": "binance_perpetual",
+        "trading_pair": {"BNB-BUSD", "BTC-BUSD", "ETH-BUSD",
+                         "ADA-BUSD", "DOGE-BUSD", "SOL-BUSD",
+                         "XRP-BUSD", "LTC-BUSD"},
+        "threshold": Decimal("0.05"),
+        "targe_value": Decimal("3000"),
+        "buy_interval": 180
+    }
+    last_ordered_ts = 0.
+    markets = {config["connector_name"]: config["trading_pair"]}
+    price = {}
+    asset_value = {}
+    status = ""
 
     def on_tick(self):
         # 检查是否到了买入时间，
         if self.last_ordered_ts < (self.current_timestamp - self.config["buy_interval"]):
-            self.cancel_all_order()
-            self.get_balance()
-            self.create_order()
+            if self.status == "":
+                self.init_rebalance()
+            elif self.status == "ACTIVATE":
+                self.cancel_all_order()
+                self.get_balance()
+                self.create_order()
+
             self.last_ordered_ts = self.current_timestamp
+
+    # 初始化
+    def init_rebalance(self):
+        self.status = "ACTIVATE"
 
     # 取消所有订单
     def cancel_all_order(self):
@@ -48,9 +49,15 @@ class RebalancePerptual(ScriptStrategyBase):
     # 获取当前持仓状况
     def get_balance(self):
         positions = self.connectors[self.config["connector_name"]].account_positions
+        for connector_name, connector in self.connectors.items():
+            print(connector_name)
+            print(connector)
+        print("positions")
+        print(positions)
         if positions:
             for tp in self.config["trading_pair"]:
-                amount = Decimal(positions[tp.replace("-", "")].amount)  # 不同交易所这里的字符串可能不同
+                # amount = Decimal(positions[tp.replace("-", "")].amount)  # 不同交易所这里的字符串可能不同
+                amount = Decimal(positions[tp].amount)  # 不同交易所这里的字符串可能不同
                 price = Decimal(self.connectors[self.config["connector_name"]].get_mid_price(tp))
                 self.price[tp] = price
                 self.asset_value[tp] = amount * price
@@ -75,18 +82,7 @@ class RebalancePerptual(ScriptStrategyBase):
             else:
                 self.sell(self.config["connector_name"], tp,
                           Decimal(config["targe_value"] * config["threshold"]) / self.price[tp], OrderType.LIMIT,
-                          self.price[tp] * Decimal("1.005"), common.PositionAction.CLOSE)
+                          self.price[tp] * Decimal("1.002"), common.PositionAction.CLOSE)
                 self.buy(self.config["connector_name"], tp,
                          Decimal(config["targe_value"] * config["threshold"]) / self.price[tp], OrderType.LIMIT,
-                         self.price[tp] * Decimal("0.995"), common.PositionAction.OPEN)
-
-    def adjusted_mid_price(self, pair):
-        """
-        Returns the  price of a hypothetical buy and sell or the base asset where the amout is {strategy.test_volume}
-        """
-        ask_result = self.connector.get_quote_volume_for_base_amount(pair, True, self.config["test_volume"])
-        bid_result = self.connector.get_quote_volume_for_base_amount(pair, False, self.config["test_volume"])
-        average_ask = ask_result.result_volume / ask_result.query_volume
-        average_bid = bid_result.result_volume / bid_result.query_volume
-        return average_bid + ((average_ask - average_bid) / 2)
-
+                         self.price[tp] * Decimal("0.998"), common.PositionAction.OPEN)
