@@ -39,8 +39,8 @@ class PMMhShiftedMidPriceDynamicSpread(ScriptStrategyBase):
 
     # Trading conf
     order_refresh_time = 15
-    order_amount = 7
-    trading_pair = "RLC-USDT"
+    order_amount = 0.003
+    trading_pair = "BTC-TUSD"
     exchange = "binance"
 
     # Creating instance of the candles
