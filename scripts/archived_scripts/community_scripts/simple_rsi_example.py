@@ -20,13 +20,12 @@ class SimpleRSIScript(ScriptStrategyBase):
     """
     The strategy is to buy on overbought signal and sell on oversold.
     """
-    connector_name = os.getenv("CONNECTOR_NAME", "binance")
+    connector_name = os.getenv("CONNECTOR_NAME", "binance_paper_trade")
     base = os.getenv("BASE", "BTC")
-    quote = os.getenv("QUOTE", "TUSD")
-    timeframe = os.getenv("TIMEFRAME", "10s")
+    quote = os.getenv("QUOTE", "USDT")
+    timeframe = os.getenv("TIMEFRAME", "1s")
 
     position_amount_usd = Decimal(os.getenv("POSITION_AMOUNT_USD", "50"))
-    position_amount_target_token = Decimal(os.getenv("POSITION_AMOUNT_TARGET_TOKEN", "0.003"))
 
     rsi_length = int(os.getenv("RSI_LENGTH", "14"))
 
@@ -68,7 +67,6 @@ class SimpleRSIScript(ScriptStrategyBase):
                 order_candidate = self.create_order_candidate(order_side)
                 # Adjust OrderCandidate
                 order_adjusted = self.connectors[self.connector_name].budget_checker.adjust_candidate(order_candidate, all_or_none=False)
-                order_adjusted.amount = self.position_amount_target_token
                 if math.isclose(order_adjusted.amount, Decimal("0"), rel_tol=1E-5):
                     self.logger().info(f"Order adjusted: {order_adjusted.amount}, too low to place an order")
                 else:
@@ -101,8 +99,8 @@ class SimpleRSIScript(ScriptStrategyBase):
         rsi: float = df.iloc[-1]['rsi']
         rsi_is_calculated = pd.notna(rsi)
         time_to_buy = rsi_is_calculated and rsi <= self.buy_rsi
-        # can_buy = self.position is None and not self._filling_position
-        return time_to_buy
+        can_buy = self.position is None and not self._filling_position
+        return can_buy and time_to_buy
 
     def should_close_position(self, df: pd.DataFrame) -> bool:
         """
@@ -111,8 +109,8 @@ class SimpleRSIScript(ScriptStrategyBase):
         rsi: float = df.iloc[-1]['rsi']
         rsi_is_calculated = pd.notna(rsi)
         time_to_sell = rsi_is_calculated and rsi >= self.sell_rsi
-        # can_sell = self.position is not None and not self._filling_position
-        return time_to_sell
+        can_sell = self.position is not None and not self._filling_position
+        return can_sell and time_to_sell
 
     def create_order_candidate(self, order_side: bool) -> OrderCandidate:
         """
@@ -125,7 +123,7 @@ class SimpleRSIScript(ScriptStrategyBase):
             conversion_rate = RateOracle.get_instance().get_pair_rate(self.trading_pair)
             amount = self.position_amount_usd / conversion_rate
         else:
-            amount = self.position_amount_target_token
+            amount = self.position.amount
 
         amount = connector.quantize_order_amount(self.trading_pair, amount)
         price = connector.quantize_order_price(self.trading_pair, price)
