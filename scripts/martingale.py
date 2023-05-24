@@ -18,17 +18,17 @@ class Martingale(ScriptStrategyBase):
     #交易间隔
     buy_interval = 60
     #交易对
-    trading_pair = {"CFX-USDT"}
+    trading_pair = {"BTC-USDT"}
     #交易所
     connector_name = "gate_io_perpetual"
     #止盈比例
-    take_profit = Decimal("0.015")
+    take_profit = Decimal("0.0005")
     #加仓间隔比例
-    buy_more = Decimal("0.025")
+    buy_more = Decimal("0.0005")
     #开仓金额
-    order_amount_usd = Decimal("50")
+    order_amount_usd = Decimal("10")
     #加仓金额倍数
-    multiple = Decimal("0.5")
+    multiple = Decimal("1")
     #加仓次数限制
     limit = Decimal("10")
     #最大持仓金额

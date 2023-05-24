@@ -23,7 +23,7 @@ class SimpleRSIScript(ScriptStrategyBase):
     connector_name = os.getenv("CONNECTOR_NAME", "binance_paper_trade")
     base = os.getenv("BASE", "BTC")
     quote = os.getenv("QUOTE", "USDT")
-    timeframe = os.getenv("TIMEFRAME", "1s")
+    timeframe = os.getenv("TIMEFRAME", "30s")
 
     position_amount_usd = Decimal(os.getenv("POSITION_AMOUNT_USD", "50"))
 
