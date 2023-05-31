@@ -100,7 +100,7 @@ def supertrend(data, period=13, atr_multiplier=3.):
 
 class AutoRebalance(ScriptStrategyBase):
     # Set connector name
-    connector_name = str("binance_paper_trade")
+    connector_name = str("binance")
 
     # Set long and short atr configuration
     s_atr_period = int(13)
@@ -136,11 +136,11 @@ class AutoRebalance(ScriptStrategyBase):
 
     # Set a list of coins configurations
     ut_coin_weight = {
-        "BTC": Decimal('33.00'),
-        "ETH": Decimal('33.00'),
+        "BTC": Decimal('50.00'),
+        "ETH": Decimal('30.00'),
     }
     dt_coin_weight = {
-        "BTC": Decimal('20.00'),
+        "BTC": Decimal('40.00'),
         "ETH": Decimal('20.00'),
     }
     coin_weight = dt_coin_weight  # Initialize coin_weight
@@ -339,7 +339,16 @@ class AutoRebalance(ScriptStrategyBase):
         current_value = {}
         for coin in coins:
             pair = coin + "-" + self.hold_asset
-            current_value[coin] = Decimal((exchange.get_balance(coin) *
+            if coin == "BTC":
+                hold_balance = exchange.get_balance(coin) + exchange.get_balance("LDBTC")
+            elif coin == "ETH":
+                hold_balance = exchange.get_balance(coin) + exchange.get_balance("BETH") + exchange.get_balance("LDETH") + exchange.get_balance("LDBETH")
+            elif coin == "TUSD":
+                hold_balance = exchange.get_balance(coin) + exchange.get_balance("BUSD") + exchange.get_balance("USDT") + exchange.get_balance("USDC")
+            else:
+                hold_balance = exchange.get_balance(coin)
+
+            current_value[coin] = Decimal((hold_balance *
                                            exchange.get_mid_price(pair))).quantize(Decimal('1.0000'))
         return current_value
 
