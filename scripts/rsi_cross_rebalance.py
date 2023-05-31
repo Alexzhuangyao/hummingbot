@@ -140,8 +140,8 @@ class AutoRebalance(ScriptStrategyBase):
         "ETH": Decimal('30.00'),
     }
     dt_coin_weight = {
-        "BTC": Decimal('40.00'),
-        "ETH": Decimal('20.00'),
+        "BTC": Decimal('50.00'),
+        "ETH": Decimal('30.00'),
     }
     coin_weight = dt_coin_weight  # Initialize coin_weight
 
