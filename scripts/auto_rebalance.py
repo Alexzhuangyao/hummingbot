@@ -100,7 +100,7 @@ def supertrend(data, period=13, atr_multiplier=3.):
 
 class AutoRebalance(ScriptStrategyBase):
     # Set connector name
-    connector_name = str("binance_paper_trade")
+    connector_name = str("binance")
 
     # Set long and short atr configuration
     s_atr_period = int(13)
@@ -136,12 +136,12 @@ class AutoRebalance(ScriptStrategyBase):
 
     # Set a list of coins configurations
     ut_coin_weight = {
-        "BTC": Decimal('33.00'),
-        "ETH": Decimal('33.00'),
+        "BTC": Decimal('50.00'),
+        "ETH": Decimal('40.00'),
     }
     dt_coin_weight = {
-        "BTC": Decimal('20.00'),
-        "ETH": Decimal('20.00'),
+        "BTC": Decimal('40.00'),
+        "ETH": Decimal('30.00'),
     }
     coin_weight = dt_coin_weight  # Initialize coin_weight
 

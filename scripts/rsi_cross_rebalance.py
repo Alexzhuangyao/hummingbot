@@ -140,19 +140,19 @@ class AutoRebalance(ScriptStrategyBase):
         "ETH": Decimal('30.00'),
     }
     dt_coin_weight = {
-        "BTC": Decimal('50.00'),
-        "ETH": Decimal('30.00'),
+        "BTC": Decimal('40.00'),
+        "ETH": Decimal('20.00'),
     }
     coin_weight = dt_coin_weight  # Initialize coin_weight
 
     # Set rebalance threshold
     ut_threshold = {
-        "BTC": Decimal('2.00'),
-        "ETH": Decimal('2.00'),
+        "BTC": Decimal('0.50'),
+        "ETH": Decimal('0.50'),
     }
     dt_threshold = {
-        "BTC": Decimal('1.00'),
-        "ETH": Decimal('1.00'),
+        "BTC": Decimal('0.20'),
+        "ETH": Decimal('0.20'),
     }
     threshold = dt_threshold  # Initialize threshold
 
