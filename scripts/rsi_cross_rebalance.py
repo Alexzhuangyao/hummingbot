@@ -36,154 +36,49 @@ def make_pairs(coins, hold_asset):
         pairs.append(pair)
     return pairs
 
-
-def get_klines(pair, interval, limit):
-    url = "https://data.binance.com/api/v3/klines"
-    params = {"symbol": pair.replace("-", ""),
-              "interval": interval, 'limit': limit}
-    klines = requests.get(url=url, params=params).json()
-    df = pd.DataFrame(klines)
-    df = df.drop(columns={6, 7, 8, 9, 10, 11})
-    df = df.rename(columns={0: 'timestamps', 1: 'open', 2: 'high', 3: 'low', 4: 'close', 5: 'volume', })
-    df = df.fillna(0)
-    df[["open", "high", "low", "close", "volume"]] = df[["open", "high", "low", "close", "volume"]].astype(float)
-    df['timestamps'] = pd.to_datetime(df['timestamps'], unit='ms')
-
-    return df
-
-
-def tr(data):
-    data['previous_close'] = data['close'].shift(1)
-    data['high-low'] = abs(data['high'] - data['low'])
-    data['high-pc'] = abs(data['high'] - data['previous_close'])
-    data['low-pc'] = abs(data['low'] - data['previous_close'])
-
-    _tr = data[['high-low', 'high-pc', 'low-pc']].max(axis=1)
-
-    return _tr
-
-
-def atr(data, period):
-    data['tr'] = tr(data)
-    _atr = data['tr'].rolling(period).mean()
-
-    return _atr
-
-
-def supertrend(data, period=13, atr_multiplier=3.):
-    hl2 = (data['high'] + data['low']) / 2
-    data['atr'] = atr(data, period)
-    data['upperband'] = hl2 + (atr_multiplier * data['atr'])
-    data['lowerband'] = hl2 - (atr_multiplier * data['atr'])
-    data['in_uptrend'] = True
-
-    for current in range(1, len(data.index)):
-        previous = current - 1
-
-        if data['close'][current] > data['upperband'][previous]:
-            data.loc[current, 'in_uptrend'] = True
-        elif data['close'][current] < data['lowerband'][previous]:
-            data.loc[current, 'in_uptrend'] = False
-        else:
-            data.loc[current, 'in_uptrend'] = data['in_uptrend'][previous]
-
-            if data['in_uptrend'][current] and data['lowerband'][current] < data['lowerband'][previous]:
-                data.loc[current, 'lowerband'] = data['lowerband'][previous]
-
-            if not data['in_uptrend'][current] and data['upperband'][current] > data['upperband'][previous]:
-                data.loc[current, 'upperband'] = data['upperband'][previous]
-
-    return data
-
-
 # ------------------------------------------------------------------------------------------- #
+
 
 class AutoRebalance(ScriptStrategyBase):
     # Set connector name
     connector_name = str("binance")
-
-    # Set long and short atr configuration
-    s_atr_period = int(13)
-    l_atr_period = int(34)
-
-    # Set SuperTrend configuration
-    trend_atr_period = int(13)
-    atr_mult = float(2.618)
-
-    # Not binance only accept intervals >> 1m, 3m, 5m ,15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w
-    interval = str("15m")
-    if str("m") in interval:
-        data_interval = interval.replace(str("m"), str(""))
-        data_interval = int(data_interval)
-        data_interval = int(data_interval * 60)
-    elif "h" in interval:
-        data_interval = interval.replace(str("h"), str(""))
-        data_interval = int(data_interval)
-        data_interval = int(data_interval * 60 * 60)
-    elif "d" in interval:
-        data_interval = interval.replace(str("d"), str(""))
-        data_interval = int(data_interval)
-        data_interval = int(data_interval * 60 * 60 * 24)
-    elif "w" in interval:
-        data_interval = interval.replace(str("w"), str(""))
-        data_interval = int(data_interval)
-        data_interval = int(data_interval * 60 * 60 * 24 * 7)
-
     limit = int(60)  # Should be more than l_atr_period
-
     # Set hold asset configuration
-    hold_asset_weight = {"TUSD": Decimal('0.00')}  # Initialize hold_asset_weight
-
+    hold_asset_weight = {"FDUSD": Decimal('4.00')}  # Initialize hold_asset_weight
     # Set a list of coins configurations
     ut_coin_weight = {
-        "BTC": Decimal('50.00'),
-        "ETH": Decimal('30.00'),
+        "BTC": Decimal('64.00'),
+        "ETH": Decimal('32.00'),
     }
-    dt_coin_weight = {
-        "BTC": Decimal('40.00'),
-        "ETH": Decimal('20.00'),
-    }
-    coin_weight = dt_coin_weight  # Initialize coin_weight
+    coin_weight = ut_coin_weight  # Initialize coin_weight
 
     # Set rebalance threshold
     ut_threshold = {
-        "BTC": Decimal('0.50'),
-        "ETH": Decimal('0.50'),
-    }
-    dt_threshold = {
         "BTC": Decimal('0.20'),
         "ETH": Decimal('0.20'),
     }
-    threshold = dt_threshold  # Initialize threshold
-
+    threshold = ut_threshold  # Initialize threshold
     # Initialize timestamp and order time
     last_ordered_ts = int(0)
     order_interval = int(60)
-
     # Abstract coin name and Make coin list
     hold_asset = abstract_keys(hold_asset_weight)[0]
     coins = abstract_keys(coin_weight)
     pairs = make_pairs(coins, hold_asset)
-
     # Put connector and pairs into markets
     markets = {connector_name: pairs}
-
     # Create trend dict
     coin_trend = {}
     for coin in coins:
         coin_trend[coin] = False
-
     # Create volatile dict
     coin_volatile = {}
     for coin in coins:
         coin_volatile[coin] = False
-
     # Set status
     status = "rebalancing"
-
     # Set initial data trigger
     have_data = False
-
     # ------------------------------------------------------------------------------------------- #
 
     @property
@@ -196,108 +91,14 @@ class AutoRebalance(ScriptStrategyBase):
     # ------------------------------------------------------------------------------------------- #
 
     def on_tick(self):
-        # Get initial data
-        if self.have_data is False:
-            self.logger().info("Time to get new data !!!")
-            self.threshold = {}
-            self.coin_weight = {}
-
-            for coin in self.coins:
-                market = coin + "-" + self.hold_asset
-                kline_df = get_klines(market, self.interval, self.limit)
-
-                kline_df['s_atr'] = atr(kline_df, self.s_atr_period)
-                kline_df.drop(columns=['previous_close', 'high-low', 'high-pc', 'low-pc', 'tr'], axis=1,
-                              inplace=True)
-                s_atr = kline_df.iloc[-1]['s_atr']
-                kline_df['l_atr'] = atr(kline_df, self.l_atr_period)
-                kline_df.drop(columns=['previous_close', 'high-low', 'high-pc', 'low-pc', 'tr'], axis=1,
-                              inplace=True)
-                l_atr = kline_df.iloc[-1]['l_atr']
-                self.coin_volatile[coin] = bool(s_atr > l_atr)
-
-                # Set threshold according to volatility and Log threshold settings
-                if self.coin_volatile[coin] is True:
-                    self.threshold[coin] = self.ut_threshold[coin]
-                    self.logger().info(coin + f" Market is volatile? {self.coin_volatile[coin]}")
-                    self.logger().info(f"Set {coin} threshold: {self.threshold[coin]}")
-                elif self.coin_volatile[coin] is False:
-                    self.threshold[coin] = self.dt_threshold[coin]
-                    self.logger().info(coin + f" Market is volatile? {self.coin_volatile[coin]}")
-                    self.logger().info(f"Set {coin} threshold: {self.threshold[coin]}")
-
-                # Calculate supertrend
-                _supertrend = supertrend(kline_df, self.trend_atr_period, self.atr_mult)
-                _supertrend.drop(columns=['high-low', 'high-pc', 'low-pc', 'tr'], axis=1, inplace=True)
-                self.coin_trend[coin] = bool(_supertrend.iloc[-1]['in_uptrend'])
-
-                # Set target weight according to trend
-                if self.coin_trend[coin] is True:
-                    self.coin_weight[coin] = self.ut_coin_weight[coin]
-                    self.logger().info(coin + f" Market is UpTrend? {self.coin_trend[coin]}")
-                    self.logger().info(f"Set {coin} weight: {self.coin_weight[coin]}")
-                elif self.coin_trend[coin] is False:
-                    self.coin_weight[coin] = self.dt_coin_weight[coin]
-                    self.logger().info(coin + f" Market is UpTrend? {self.coin_trend[coin]}")
-                    self.logger().info(f"Set {coin} weight: {self.coin_weight[coin]}")
-
-            total_value = sum(self.coin_weight.values())
-            new_value = Decimal('100.00') - total_value
-            self.hold_asset_weight["TUSD"] = new_value
-            self.logger().info(f"Set {self.hold_asset} weight: {self.hold_asset_weight['TUSD']}")
-
-            self.have_data = True
-
-        # Check if it is time to get new data
-        elif self.current_timestamp == ((self.current_timestamp // self.data_interval) *
-                                        self.data_interval) and self.have_data is True:
-            self.logger().info("Time to get new data !!!")
-            self.threshold = {}
-            self.coin_weight = {}
-
-            for coin in self.coins:
-                market = coin + "-" + self.hold_asset
-                kline_df = get_klines(market, self.interval, self.limit)
-
-                kline_df['s_atr'] = atr(kline_df, self.s_atr_period)
-                kline_df.drop(columns=['previous_close', 'high-low', 'high-pc', 'low-pc', 'tr'], axis=1,
-                              inplace=True)
-                s_atr = kline_df.iloc[-1]['s_atr']
-                kline_df['l_atr'] = atr(kline_df, self.l_atr_period)
-                kline_df.drop(columns=['previous_close', 'high-low', 'high-pc', 'low-pc', 'tr'], axis=1,
-                              inplace=True)
-                l_atr = kline_df.iloc[-1]['l_atr']
-                self.coin_volatile[coin] = bool(s_atr > l_atr)
-
-                # Set threshold according to volatility and Log threshold settings
-                if self.coin_volatile[coin] is True:
-                    self.threshold[coin] = self.ut_threshold[coin]
-                    self.logger().info(coin + f" Market is volatile? {self.coin_volatile[coin]}")
-                    self.logger().info(f"Set {coin} threshold: {self.threshold[coin]}")
-                elif self.coin_volatile[coin] is False:
-                    self.threshold[coin] = self.dt_threshold[coin]
-                    self.logger().info(coin + f" Market is volatile? {self.coin_volatile[coin]}")
-                    self.logger().info(f"Set {coin} threshold: {self.threshold[coin]}")
-
-                # Calculate supertrend
-                _supertrend = supertrend(kline_df, self.trend_atr_period, self.atr_mult)
-                _supertrend.drop(columns=['high-low', 'high-pc', 'low-pc', 'tr'], axis=1, inplace=True)
-                self.coin_trend[coin] = bool(_supertrend.iloc[-1]['in_uptrend'])
-
-                # Set target weight according to trend
-                if self.coin_trend[coin] is True:
-                    self.coin_weight[coin] = self.ut_coin_weight[coin]
-                    self.logger().info(coin + f" Market is UpTrend? {self.coin_trend[coin]}")
-                    self.logger().info(f"Set {coin} weight: {self.coin_weight[coin]}")
-                elif self.coin_trend[coin] is False:
-                    self.coin_weight[coin] = self.dt_coin_weight[coin]
-                    self.logger().info(coin + f" Market is UpTrend? {self.coin_trend[coin]}")
-                    self.logger().info(f"Set {coin} weight: {self.coin_weight[coin]}")
-
-            total_value = sum(self.coin_weight.values())
-            new_value = Decimal('100.00') - total_value
-            self.hold_asset_weight["TUSD"] = new_value
-            self.logger().info(f"Set {self.hold_asset} weight: {self.hold_asset_weight['TUSD']}")
+        self.threshold = {}
+        self.coin_weight = {}
+        for coin in self.coins:
+            self.threshold[coin] = self.ut_threshold[coin]
+            self.coin_weight[coin] = self.ut_coin_weight[coin]
+        total_value = sum(self.coin_weight.values())
+        new_value = Decimal('100.00') - total_value
+        self.hold_asset_weight["FDUSD"] = new_value
 
         # Check if it is time to rebalance
         if self.last_ordered_ts < (self.current_timestamp - self.order_interval):
@@ -343,7 +144,7 @@ class AutoRebalance(ScriptStrategyBase):
                 hold_balance = exchange.get_balance(coin) + exchange.get_balance("LDBTC")
             elif coin == "ETH":
                 hold_balance = exchange.get_balance(coin) + exchange.get_balance("BETH") + exchange.get_balance("LDETH") + exchange.get_balance("LDBETH")
-            elif coin == "TUSD":
+            elif coin == "FDUSD":
                 hold_balance = exchange.get_balance(coin) + exchange.get_balance("BUSD") + exchange.get_balance("USDT") + exchange.get_balance("USDC")
             else:
                 hold_balance = exchange.get_balance(coin)
@@ -506,12 +307,6 @@ class AutoRebalance(ScriptStrategyBase):
             lines.extend(["", "  No active maker orders."])
 
         lines.extend(["", "  ------------------------------------------------------------------------------------"])
-
-        lines.extend(["", "  Trend Info:\n"])
-        lines.extend([f" | ATR Short period: {np.round(self.s_atr_period, 4)}      |" +
-                      f" ATR Long period: {np.round(self.l_atr_period, 4)}            |"])
-        lines.extend([f" | SuperTrend ATR period: {self.trend_atr_period} |" +
-                      f" SuperTrend ATR multiplier: {self.atr_mult} |\n"])
 
         df = pd.DataFrame(index=list(self.coins), columns=["Uptrend", "Volatile"])
         for coin in self.coins:
