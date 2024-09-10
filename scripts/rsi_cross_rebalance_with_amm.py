@@ -147,7 +147,9 @@ class AutoRebalance(ScriptStrategyBase):
             elif coin == "ETH":
                 hold_balance = exchange.get_balance(coin) + exchange.get_balance("BETH") + exchange.get_balance("LDETH") + exchange.get_balance("LDBETH")
             elif coin == "FDUSD":
-                hold_balance = exchange.get_balance(coin) + exchange.get_balance("BUSD") + exchange.get_balance("USDT") + exchange.get_balance("USDC")
+                self.logger().info("------------------")
+                self.logger().info(exchange.get_balance("LDFDUSD"))
+                hold_balance = exchange.get_balance(coin) + exchange.get_balance("LDFDUSD") + exchange.get_balance("BUSD") + exchange.get_balance("USDT") + exchange.get_balance("USDC")
             else:
                 hold_balance = exchange.get_balance(coin)
 
